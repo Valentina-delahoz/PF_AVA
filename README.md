@@ -129,7 +129,7 @@ python3 raspberry_pi/ava_main.py
 4. La navegación autónoma inicia automáticamente
 5. Para detener: apaga el switch físico
 
-> Consulta el [Manual de Usuario](docs/manual_usuario.pdf) para instrucciones detalladas de configuración de pistas y operación.
+> Consulta el [Manual de Usuario](Manual_Usuario_PF_AVA (1)) para instrucciones detalladas de configuración de pistas y operación.
 
 ---
 
