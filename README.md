@@ -1,109 +1,115 @@
 # AVA — Autonomous Vehicle Prototype Powered by AI Agents
 
-> Vehículo autónomo a escala con dos agentes de IA especializados para navegación segura en entornos urbanos controlados.
+> A scale autonomous vehicle with two specialized AI agents for safe navigation in controlled urban environments.
 
-**Universidad del Norte** · Ingeniería Eléctrica y Electrónica · 2026-1
+**Universidad del Norte** · Electrical and Electronic Engineering · 2026-1
 
-**Autores:** Valentina De la Hoz · Roger Coronell · Samir Albor  
-**Asesores:** Ph.D. Christian Quintero · Ph.D. Mauricio Pardo
-
----
-
-## ¿Qué es AVA?
-
-AVA es un prototipo de vehículo autónomo a escala 1:10, construido íntegramente con recursos de la Universidad del Norte (carrocería en impresión 3D), que integra dos agentes de inteligencia artificial:
-
-- **Agente de percepción** — detecta señales de tránsito, semáforos, vehículos y sigue el carril en tiempo real
-- **Agente de decisión** — interpreta las percepciones y ejecuta acciones autónomas de conducción mediante una Máquina de Estados Finitos (FSM)
+**Authors:** Valentina De la Hoz · Roger Coronell · Samir Albor  
+**Advisors:** Ph.D. Christian Quintero · Ph.D. Mauricio Pardo
 
 ---
 
-## Resultados
+## What is AVA?
 
-| Métrica | Valor |
+AVA is a scale autonomous vehicle prototype built entirely with Universidad del Norte resources (including a 100% 3D-printed body). It integrates two artificial intelligence agents:
+
+- **Perception agent**: detects traffic signs, traffic lights and vehicles, and follows the lane in real time
+- **Decision agent**: interprets the perception output and executes autonomous driving actions through a Finite State Machine (FSM)
+
+The goal is a low-cost, replicable educational and research platform for experimenting with AI agents in autonomous driving, without the cost of industrial vehicles or the limits of purely virtual simulators.
+
+---
+
+## Results
+
+| Metric | Value |
 |---|---|
-| mAP@0.5 (detección de objetos) | 91.3% |
+| mAP@0.5 (object detection) | 91.3% |
 | F1-Score | 0.94 |
-| TDA media global (30 experimentos) | 90.60% |
-| Latencia del sistema | ~50 ms |
-| FPS en operación real | ~10 FPS |
-| Autonomía de batería | ~2 horas |
+| Mean global ADR (30 experiments) | 90.60% |
+| System latency | ~50 ms |
+| Real-world frame rate | ~10 FPS |
+| Battery life | ~2 hours |
 
-> Con un **95% de confianza**, AVA resuelve correctamente más del **85%** de los eventos de navegación en pistas de distinta complejidad (prueba t de Student, α = 0.05).
+> With **95% confidence**, AVA correctly resolves more than **85%** of navigation events across tracks of varying complexity (one-tailed Student's t-test, α = 0.05).
+
+*ADR (Accurate Decision Rate) is the percentage of checkpoints a run resolves correctly, e.g. taking a curve without leaving the lane, stopping at a red light, or detecting a stop sign.*
 
 ---
 
-## Arquitectura del sistema
+## System Architecture
 
 ```
-Cámara web
+Webcam
     │
     ▼
-Raspberry Pi 4  ──── YOLOv8 (detección de objetos)
-    │           ──── Transformada de Hough (seguimiento de carril)
-    │           ──── FSM (agente de decisión)
+Raspberry Pi 4  ──── YOLOv8 (object detection)
+    │           ──── Hough Transform (lane following)
+    │           ──── FSM (decision agent)
     │
     ▼  UART (Serial)
 ESP32
     │
-    ├── Motor DC 25GA370 (tracción) → Driver L298N
-    ├── Servomotor MG995 (dirección)
-    └── 2× Ultrasonidos HC-SR04 (detección de obstáculos)
+    ├── DC motor 25GA370 (traction) → L298N driver
+    ├── MG995 servo (steering)
+    └── 2× HC-SR04 ultrasonic sensors (obstacle detection)
 ```
 
 **Software:** Python · ROS2 · OpenCV · YOLOv8 (Ultralytics)  
-**Hardware:** Raspberry Pi 4 · ESP32 · LiPo 3S 2200mAh · Webcam Lightbek-PLU
+**Hardware:** Raspberry Pi 4 · ESP32 · 3S 2200mAh LiPo · Lightbek-PLU webcam
 
 ---
 
-## Estructura del repositorio
+## Repository Structure
 
 ```
 PF_AVA/
 ├── raspberry_pi/
-│   └── ava_main.py          # Agente de percepción y control (Python)
+│   └── ava_main.py          # Perception and control agent (Python)
 ├── esp32/
-│   └── esp32_firmware.ino   # Firmware de actuación y telemetría (C++)
-├── docs/
-│   └── manual_usuario.pdf   # Guía de inicio rápido
+│   └── esp32_firmware.ino   # Actuation and telemetry firmware (C++)
 └── README.md
 ```
 
 ---
 
-## Clases detectadas por YOLOv8
+## Classes Detected by YOLOv8
 
-| Clase | Acción del vehículo |
+| Class | Vehicle action |
 |---|---|
-| `green-traffic-light` | Avanzar |
-| `red-traffic-light` | Detenerse (hasta ver verde) |
-| `stop-sign` | Detenerse 3 segundos |
-| `vehicle` | Reducir velocidad |
+| `green-traffic-light` | Go |
+| `red-traffic-light` | Stop (until green) |
+| `stop-sign` | Stop for 3 seconds |
+| `vehicle` | Slow down |
+
+The model is a pretrained YOLOv8 fine-tuned on a custom dataset captured on the project's own test tracks. Detection rates were perfect for traffic lights and vehicles; the stop sign (mAP@0.5 of 66.5%) is the main area for improvement, due to its smaller training set.
 
 ---
 
-## Jerarquía de decisiones (FSM)
+## Decision Hierarchy (FSM)
 
 ```
-P1 — Obstáculo <15 cm          → DETENIDO (ultrasónicos)
-P2 — Semáforo rojo / Stop sign → DETENIDO (visión)
-P3 — Vehículo detectado        → LENTO
-P4 — Vía libre / semáforo verde → NORMAL
+P1 — Obstacle < 15 cm              → STOPPED (ultrasonic sensors)
+P2 — Red light / Stop sign         → STOPPED (vision)
+P3 — Vehicle detected              → SLOW
+P4 — Clear road / green light      → NORMAL
 ```
 
 ---
 
-## Pistas de prueba
+## Test Tracks
 
-| Pista | Descripción | Checkpoints |
+| Track | Description | Checkpoints |
 |---|---|---|
-| Pista 1 | Curvas y rectas — sin señales | 4 |
-| Pista 2 | Recta con semáforos y señales | 5–6 |
-| Pista 3 | Intersección completa con obstáculos | 6 |
+| Track 1 | Curves and straights, no signs | 4 |
+| Track 2 | Straight road with traffic lights and signs | 5–6 |
+| Track 3 | Full intersection with obstacles | 6 |
+
+Each track was run 10 times (30 runs in total). Mean ADR per track: **91.5%** (Track 1), **90.3%** (Track 2), **90.0%** (Track 3), so higher environment complexity did not significantly degrade performance.
 
 ---
 
-## Instalación
+## Installation
 
 ### Raspberry Pi 4
 
@@ -114,29 +120,35 @@ python3 raspberry_pi/ava_main.py
 
 ### ESP32
 
-1. Abre `esp32/esp32_firmware.ino` en Arduino IDE
-2. Instala la librería `ESP32Servo`
-3. Selecciona la placa `ESP32 Dev Module`
-4. Sube el firmware
+1. Open `esp32/esp32_firmware.ino` in the Arduino IDE
+2. Install the `ESP32Servo` library
+3. Select the `ESP32 Dev Module` board
+4. Upload the firmware
 
 ---
 
-## Cómo usar AVA
+## How to Use AVA
 
-1. Carga la batería LiPo 3S 2200mAh completamente
-2. Activa el switch físico del vehículo
-3. Conéctate por SSH vía ZeroTier: `ssh pi@10.116.170.97`
-4. La navegación autónoma inicia automáticamente
-5. Para detener: apaga el switch físico
-
-> Consulta el [Manual de Usuario](Manual_Usuario_PF.pdf) para instrucciones detalladas de configuración de pistas y operación.
+1. Fully charge the 3S 2200mAh LiPo battery
+2. Turn on the vehicle's physical switch
+3. Connect over SSH via ZeroTier
+4. Autonomous navigation starts automatically
+5. To stop, turn off the physical switch
 
 ---
 
-## Publicación
+## Future Work
 
-Informe final disponible en el Repositorio Institucional de la Universidad del Norte.
+- Migrate to an NVIDIA Jetson Nano to reduce latency and increase inference FPS
+- Expand the stop-sign training dataset
+- Replace or complement the FSM with a deep reinforcement learning agent
 
 ---
 
-*Proyecto de grado — Ingeniería Eléctrica y Electrónica, Universidad del Norte, Barranquilla, Colombia, 2026.*
+## Publication
+
+The final report is available in the Universidad del Norte Institutional Repository: http://hdl.handle.net/10584/14118
+
+---
+
+*Capstone project — Electrical and Electronic Engineering, Universidad del Norte, Barranquilla, Colombia, 2026.*
